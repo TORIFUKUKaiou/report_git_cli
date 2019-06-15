@@ -6,29 +6,35 @@ defmodule ReportGitCli.Git do
   def fetch(opts) do
     dir = opts[:dir]
 
-    System.cmd("git", ["fetch", "origin"], cd: dir)
+    git_fetch_origin(dir)
 
-    Stream.iterate(0, &(&1 + 1))
-    |> Enum.reduce_while([], fn i, acc -> log(i, opts) |> _concat(acc) end)
+    0..(num_of_git_logs(dir, Keyword.get(opts, :branch, "master")) - 1)
+    |> Stream.map(fn i -> log(i, opts) end)
     |> logs_parse
   end
 
-  defp _concat(log, acc) when byte_size(log) > 0, do: {:cont, acc ++ [log]}
-  defp _concat(_, acc), do: {:halt, acc}
+  defp run_git_command(option_list, dir) do
+    {result, 0} = System.cmd("git", option_list, cd: dir)
+    result
+  end
+
+  defp git_fetch_origin(dir), do: run_git_command(["fetch", "origin"], dir)
+
+  defp git_log_oneline(dir, branch),
+    do:
+      run_git_command(["log", "origin/#{branch}", "--oneline", "--no-merges", "--pretty=%h"], dir)
+
+  defp num_of_git_logs(dir, branch), do: git_log_oneline(dir, branch) |> String.split() |> length
 
   def log(i, opts) do
     dir = opts[:dir]
     branch = Keyword.get(opts, :branch, "master")
 
-    {log, 0} =
-      System.cmd(
-        "git",
-        ["log", "origin/#{branch}", "--numstat", "--no-merges", "--skip=#{i}", "-n 1"] ++
-          options(opts),
-        cd: dir
-      )
-
-    log
+    run_git_command(
+      ["log", "origin/#{branch}", "--numstat", "--no-merges", "--skip=#{i}", "-n 1"] ++
+        options(opts),
+      dir
+    )
   end
 
   def options(opts) do
@@ -57,7 +63,7 @@ defmodule ReportGitCli.Git do
         num_of_deleted_lines: num_of_deleted_lines
       }
 
-      Map.put(acc, email, Map.get(acc, email, []) ++ [commit])
+      Map.update(acc, email, [commit], &(&1 ++ [commit]))
     end)
   end
 

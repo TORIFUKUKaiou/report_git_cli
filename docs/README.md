@@ -30,9 +30,6 @@ hoge@sample.co.jp   |                153 |                   57
 $ ./report_git_cli --dir "/your/path" --branch develop
 ```
 
-```
-$ ./report_git_cli --dir "/your/path" --branch develop
-```
 
 ```
 ./report_git_cli --dir "/your/path" --branch develop --since 2019/06/06 --until 2019/06/14
@@ -47,5 +44,6 @@ $ ./report_git_cli --dir "/your/path" --branch develop
 
 ```
 $ git fetch origin
+$ git log origin/master --oneline --no-merges --pretty=%h
 $ git log origin/master --numstat --no-merges --author "TORIFUKU Kaiou" --since 2019/06/06 --until 2019/06/14
 ```
