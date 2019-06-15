@@ -9,7 +9,9 @@ defmodule ReportGitCli.Git do
     git_fetch_origin(dir)
 
     0..(num_of_git_logs(dir, Keyword.get(opts, :branch, "master")) - 1)
-    |> Stream.map(fn i -> log(i, opts) end)
+    |> Flow.from_enumerable()
+    |> Flow.map(fn i -> log(i, opts) end)
+    |> Flow.partition()
     |> logs_parse
   end
 
@@ -49,7 +51,7 @@ defmodule ReportGitCli.Git do
 
   def logs_parse(logs) do
     logs
-    |> Enum.reduce(%{}, fn lines, acc ->
+    |> Flow.reduce(fn -> %{} end, fn lines, acc ->
       sha_1_checksum = lines |> String.split("\n") |> Enum.at(0) |> sha_1_checksum()
       %{"email" => email} = lines |> String.split("\n") |> Enum.at(1) |> author()
       date = lines |> String.split("\n") |> Enum.at(2) |> date()
@@ -64,6 +66,9 @@ defmodule ReportGitCli.Git do
       }
 
       Map.update(acc, email, [commit], &(&1 ++ [commit]))
+    end)
+    |> Enum.reduce(%{}, fn {email, commits}, acc ->
+      Map.update(acc, email, commits, &(&1 ++ commits))
     end)
   end
 

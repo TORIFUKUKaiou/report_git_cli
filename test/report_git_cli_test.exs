@@ -191,7 +191,12 @@ defmodule ReportGitCliTest do
     49      0       lib/tasks/dummy.rake
     """
 
-    map = [log1, log2, log3, log4, log5, log6] |> ReportGitCli.Git.logs_parse()
+    map =
+      [log1, log2, log3, log4, log5, log6]
+      |> Flow.from_enumerable()
+      |> Flow.partition()
+      |> ReportGitCli.Git.logs_parse()
+
     keys = map |> Map.keys() |> Enum.sort()
     assert keys == ["fuga@fuga.com", "hoge@hoge.com", "test@test.com"]
     assert length(Map.get(map, "fuga@fuga.com")) == 1
